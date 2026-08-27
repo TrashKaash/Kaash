@@ -2,7 +2,9 @@
 // Their files remain in the project and can be re-enabled later.
 
 export const disabledCommands = new Set([
-    // Economy
+    // ==========================================
+    // ECONOMY
+    // ==========================================
     'balance',
     'beg',
     'buy',
@@ -21,20 +23,95 @@ export const disabledCommands = new Set([
     'withdraw',
     'work',
 
-    // Birthday
+    // ==========================================
+    // BIRTHDAY
+    // ==========================================
     'birthday',
 
-    // Giveaways
+    // ==========================================
+    // GIVEAWAYS
+    // ==========================================
     'gcreate',
     'gdelete',
     'gend',
     'greroll',
 
-    // Leveling
+    // ==========================================
+    // LEVELING
+    // ==========================================
     'leaderboard',
     'level',
+    'rank',
 
-    // Utilities / tools
+    // ==========================================
+    // FUN
+    // ==========================================
+    'count',
+    'fight',
+    'flip',
+    'roll',
+    'randomuser',
+
+    // ==========================================
+    // MUSIC - TEMPORARILY DISABLED
+    // ==========================================
+    // Se activará después cuando configuremos
+    // correctamente el sistema de música.
+    'join',
+    'play',
+    'music',
+    'queue',
+    'nowplaying',
+
+    // ==========================================
+    // TICKETS - TEMPORARILY DISABLED
+    // ==========================================
+    // Los activaremos cuando hagamos nuestro
+    // propio sistema de tickets.
+    'ticket',
+    'close',
+    'support',
+    'priority',
+    'cases',
+
+    // ==========================================
+    // APPLICATIONS
+    // ==========================================
+    'apply',
+    'app-admin',
+
+    // ==========================================
+    // VERIFICATION - TEMPORARILY DISABLED
+    // ==========================================
+    // Se conservará para posteriormente hacer
+    // nuestro sistema de autoverificación.
+    'verification',
+    'verify',
+    'autoverify',
+
+    // ==========================================
+    // SERVER STATS
+    // ==========================================
+    // Lo vamos a reemplazar/mejorar por nuestro
+    // contador de miembros.
+    'serverstats',
+
+    // ==========================================
+    // REACTION ROLES - TEMPORARILY DISABLED
+    // ==========================================
+    // Se activará cuando configuremos nuestro
+    // sistema de Reaction Roles.
+    'reactroles',
+
+    // ==========================================
+    // JOIN TO CREATE - TEMPORARILY DISABLED
+    // ==========================================
+    // Se activará cuando hagamos el dashboard.
+    'jointocreate',
+
+    // ==========================================
+    // TOOLS / UTILITIES
+    // ==========================================
     'baseconvert',
     'calculate',
     'hexcolor',
@@ -43,4 +120,37 @@ export const disabledCommands = new Set([
     'weather',
     'todo',
     'search',
+    'countdown',
+    'embedbuilder',
+    'generatepassword',
+    'dm',
+    'say',
+    'time',
+
+    // ==========================================
+    // MODERATION - NOT NEEDED FOR NOW
+    // ==========================================
+    'ban',
+    'kick',
+    'massban',
+    'masskick',
+    'timeout',
+    'untimeout',
+    'warn',
+    'warnings',
+    'usernotes',
+    'lock',
+    'unlock',
+    'purge',
+
+    // ==========================================
+    // OTHER
+    // ==========================================
+    'avatar',
+    'userinfo',
+    'serverinfo',
+    'report',
+    'configwizard',
+    'commands',
+    'wipedata',
 ]);
