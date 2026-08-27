@@ -130,8 +130,6 @@ export const disabledCommands = new Set([
     // ==========================================
     // MODERATION - NOT NEEDED FOR NOW
     // ==========================================
-    'ban',
-    'kick',
     'massban',
     'masskick',
     'timeout',
@@ -141,7 +139,8 @@ export const disabledCommands = new Set([
     'usernotes',
     'lock',
     'unlock',
-    'purge',
+    'massban',
+    'masskick',
 
     // ==========================================
     // OTHER
