@@ -1,5 +1,5 @@
 import { getColor } from '../../config/bot.js';
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder } from 'discord.js';
 import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
 import { formatWelcomeMessage, truncateForEmbedField } from '../../utils/welcome.js';
 import { logger } from '../../utils/logger.js';
@@ -11,6 +11,8 @@ export default {
         .setName('welcome')
         .setDescription('Configure the welcome system')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+
+        // /welcome setup
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setup')
@@ -31,11 +33,20 @@ export default {
                 .addBooleanOption(option =>
                     option.setName('ping')
                         .setDescription('Whether to ping the user in the welcome message')
-                        .setRequired(false))),
+                        .setRequired(false))
+        )
+
+        // /welcome test
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('test')
+                .setDescription('Test the welcome message')
+        ),
 
     async execute(interaction) {
         try {
             const deferSuccess = await InteractionHelper.safeDefer(interaction);
+
             if (!deferSuccess) {
                 logger.warn(`Welcome interaction defer failed`, {
                     userId: interaction.user.id,
@@ -52,11 +63,88 @@ export default {
         const { options, guild, client } = interaction;
 
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use `/welcome`.' });
+            return await replyUserError(interaction, {
+                type: ErrorTypes.PERMISSION,
+                message: 'You need the **Manage Server** permission to use `/welcome`.'
+            });
         }
 
         const subcommand = options.getSubcommand();
 
+        // =========================================================
+        // /welcome test
+        // =========================================================
+        if (subcommand === 'test') {
+            try {
+                const welcomeConfig = await getWelcomeConfig(client, guild.id);
+
+                if (!welcomeConfig?.enabled || !welcomeConfig?.channelId) {
+                    return await replyUserError(interaction, {
+                        type: ErrorTypes.VALIDATION,
+                        message: 'The welcome system is not configured or enabled yet.'
+                    });
+                }
+
+                const channel = guild.channels.cache.get(welcomeConfig.channelId);
+
+                if (!channel?.isTextBased?.()) {
+                    return await replyUserError(interaction, {
+                        type: ErrorTypes.VALIDATION,
+                        message: 'The configured welcome channel could not be found.'
+                    });
+                }
+
+                const me = guild.members.me;
+                const permissions = me ? channel.permissionsFor(me) : null;
+
+                if (!permissions?.has([
+                    PermissionFlagsBits.ViewChannel,
+                    PermissionFlagsBits.SendMessages
+                ])) {
+                    return await replyUserError(interaction, {
+                        type: ErrorTypes.PERMISSION,
+                        message: `I don't have permission to send messages in <#${channel.id}>.`
+                    });
+                }
+
+                // The test uses the same basic format as the real welcome.
+                const welcomeMessage = 'welcome';
+
+                await channel.send({
+                    content: welcomeConfig.welcomePing
+                        ? `${welcomeMessage} ${interaction.user.toString()}!`
+                        : `${welcomeMessage} ${interaction.user.username}!`,
+                    allowedMentions: welcomeConfig.welcomePing
+                        ? { users: [interaction.user.id] }
+                        : { parse: [] }
+                });
+
+                await InteractionHelper.safeEditReply(interaction, {
+                    content: `✅ Welcome test sent in ${channel}.`
+                });
+
+                logger.info(
+                    `[Welcome] Test sent by ${interaction.user.tag} in guild ${guild.id}`
+                );
+
+            } catch (error) {
+                logger.error(
+                    `[Welcome] Failed to send test in guild ${guild.id}:`,
+                    error
+                );
+
+                await replyUserError(interaction, {
+                    type: ErrorTypes.UNKNOWN,
+                    message: 'An error occurred while sending the welcome test.'
+                });
+            }
+
+            return;
+        }
+
+        // =========================================================
+        // /welcome setup
+        // =========================================================
         if (subcommand === 'setup') {
             const channel = options.getChannel('channel');
             const message = options.getString('message');
@@ -64,22 +152,41 @@ export default {
             const ping = options.getBoolean('ping') ?? false;
 
             const existingConfig = await getWelcomeConfig(client, guild.id);
+
             if (existingConfig?.channelId) {
-                logger.info(`[Welcome] Setup blocked because config already exists in channel ${existingConfig.channelId} for guild ${guild.id}`);
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Welcome is already configured for <#${existingConfig.channelId}>. Use **/greet dashboard** to customize channel, message, ping, or image.` });
+                logger.info(
+                    `[Welcome] Setup blocked because config already exists in channel ${existingConfig.channelId} for guild ${guild.id}`
+                );
+
+                return await replyUserError(interaction, {
+                    type: ErrorTypes.UNKNOWN,
+                    message: `Welcome is already configured for <#${existingConfig.channelId}>. Use **/greet dashboard** to customize channel, message, ping, or image.`
+                });
             }
-            
+
             if (!message || message.trim().length === 0) {
-                logger.warn(`[Welcome] Empty message provided by ${interaction.user.tag} in ${guild.name}`);
-                return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Welcome message cannot be empty' });
+                logger.warn(
+                    `[Welcome] Empty message provided by ${interaction.user.tag} in ${guild.name}`
+                );
+
+                return await replyUserError(interaction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: 'Welcome message cannot be empty'
+                });
             }
 
             if (image) {
                 try {
                     new URL(image);
                 } catch (e) {
-                    logger.warn(`[Welcome] Invalid image URL provided by ${interaction.user.tag}: ${image}`);
-                    return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please provide a valid image URL (must start with http:// or https://' });
+                    logger.warn(
+                        `[Welcome] Invalid image URL provided by ${interaction.user.tag}: ${image}`
+                    );
+
+                    return await replyUserError(interaction, {
+                        type: ErrorTypes.VALIDATION,
+                        message: 'Please provide a valid image URL (must start with http:// or https://)'
+                    });
                 }
             }
 
@@ -92,7 +199,9 @@ export default {
                     welcomePing: ping
                 });
 
-                logger.info(`[Welcome] Setup configured by ${interaction.user.tag} for guild ${guild.name} (${guild.id})`);
+                logger.info(
+                    `[Welcome] Setup configured by ${interaction.user.tag} for guild ${guild.name} (${guild.id})`
+                );
 
                 const previewMessage = formatWelcomeMessage(message, {
                     user: interaction.user,
@@ -104,20 +213,41 @@ export default {
                     .setTitle('Welcome System Configured')
                     .setDescription(`Welcome messages will now be sent to ${channel}`)
                     .addFields(
-                        { name: 'Message Preview', value: truncateForEmbedField(previewMessage) },
-                        { name: 'Ping User', value: ping ? 'Yes' : 'No' },
-                        { name: 'Status', value: 'Enabled' }
+                        {
+                            name: 'Message Preview',
+                            value: truncateForEmbedField(previewMessage)
+                        },
+                        {
+                            name: 'Ping User',
+                            value: ping ? 'Yes' : 'No'
+                        },
+                        {
+                            name: 'Status',
+                            value: 'Enabled'
+                        }
                     )
-                    .setFooter({ text: 'Tip: Use /greet dashboard to customize welcome settings' });
+                    .setFooter({
+                        text: 'Tip: Use /greet dashboard to customize welcome settings'
+                    });
 
                 if (image) {
                     embed.setImage(image);
                 }
 
-                await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+                await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [embed]
+                });
+
             } catch (error) {
-                logger.error(`[Welcome] Failed to setup welcome system for guild ${guild.id}:`, error);
-                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while configuring the welcome system. Please try again.' });
+                logger.error(
+                    `[Welcome] Failed to setup welcome system for guild ${guild.id}:`,
+                    error
+                );
+
+                await replyUserError(interaction, {
+                    type: ErrorTypes.UNKNOWN,
+                    message: 'An error occurred while configuring the welcome system. Please try again.'
+                });
             }
         }
     },
