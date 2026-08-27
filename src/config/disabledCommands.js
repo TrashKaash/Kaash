@@ -121,11 +121,13 @@ export const disabledCommands = new Set([
     'todo',
     'search',
     'countdown',
-    'embedbuilder',
     'generatepassword',
     'dm',
     'say',
     'time',
+    'firstmsg',
+    'report',
+    'wipedata',
 
     // ==========================================
     // MODERATION - NOT NEEDED FOR NOW
@@ -145,9 +147,6 @@ export const disabledCommands = new Set([
     // ==========================================
     // OTHER
     // ==========================================
-    'avatar',
-    'userinfo',
-    'serverinfo',
     'report',
     'configwizard',
     'commands',
